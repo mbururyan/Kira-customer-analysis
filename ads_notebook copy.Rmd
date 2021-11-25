@@ -1,0 +1,411 @@
+
+# ADVERTISEMENTS ANALYSIS
+
+* This is a R Markdown notebook, and can be viewed as a html script. Please do not view directly on github.
+
+# Data Scientist
+- Ryan Mburu
+
+# Question Definition
+A customer working in the crypto market is looking to deeply understand her audience and how they interact with ads posted on her website. We are to assist her understand which demographic of her viewers interact with ads the most/least so as to help her make better decisions moving foward.
+
+# Metric of Success 
+Perform data cleaning and Exploratory data Analysis so as to get insights on the audience and their interad]ctions with the advertisements
+
+# Relevance of the data
+It is relevant. Trust me.
+
+
+# Loading the dataset
+
+```{r}
+library('data.table')
+```
+
+
+```{r}
+library(tidyverse)
+```
+```{r}
+install.packages('tidyverse')
+library(tidyverse)
+
+install.packages('ggplot2')
+library(ggplot2)
+
+install.packages('caret')
+library(caret)
+
+install.packages('caretEnsemble')
+library(caretEnsemble)
+
+install.packages('psych')
+library(psych)
+
+install.packages('Amelia')
+library(Amelia)
+
+install.packages('mice')
+library(mice)
+
+install.packages('GGally')
+library(GGally)
+
+install.packages('rpart')
+library(rpart)
+
+install.packages('randomForest')
+library(randomForest)
+```
+
+
+```{r}
+ads <- read.csv('~/Documents/DS-Projects/R/advertisement recommendation/advertising.csv')
+
+#print first 6 rows
+
+head(ads)
+```
+```{r}
+# Size of the dataset
+print(nrow(ads))
+print(ncol(ads))
+
+```
+
+the dataset has 1000 rows and 10 columns
+
+
+# Data Cleaning
+
+## Missing values
+```{r}
+# Checking for missing values and handling them if present
+
+colSums(is.na(ads))
+```
+
+No column has any null values
+
+## Duplicates
+
+```{r}
+colSums(ads[duplicated(ads)])
+```
+
+No duplicates
+
+## Outliers
+
+```{r}
+# Will use a boxplot
+
+# 1. Time spent on site
+
+boxplot(ads$Daily.Time.Spent.on.Site)
+```
+
+
+```{r}
+# age of the customers
+boxplot(ads$Age)
+```
+
+
+```{r}
+# income
+boxplot(ads$Area.Income)
+```
+there are outliers, and will be dropped
+```{r}
+#Outliers will be saved in a vector
+
+outliers <- boxplot.stats(ads$Area.Income)$out
+outliers
+
+
+# Dropping them from our data
+new_ads <- ads
+new_ads
+
+new_ads <- new_ads[-which(new_ads$Area.Income %in% outliers),]
+new_ads
+
+
+```
+
+
+```{r}
+boxplot(new_ads$Area.Income)
+```
+The outliers are dropped, as now they are way less than the previous boxplot
+
+```{r}
+# outliers in internet usage column
+boxplot(new_ads$Daily.Internet.Usage)
+```
+No more outliers, therefore our dataset is clean.
+
+# EXPLORATORY DATA ANALYSIS
+
+# Univariate Analysis
+
+```{r}
+# get the dataset for numeric data only
+
+numeric_ads <- select(new_ads, Daily.Time.Spent.on.Site, Age, Area.Income,Daily.Internet.Usage)
+numeric_ads
+```
+
+
+```{r}
+# Mean for all numeric data
+apply(numeric_ads, 2, mean)
+```
+
+
+```{r}
+# Median
+apply(numeric_ads, 2, median)
+```
+
+
+```{r}
+# Minimum values
+apply(numeric_ads, 2, min)
+```
+
+
+```{r}
+# Maximum values
+apply(numeric_ads, 2, max)
+```
+
+
+```{r}
+# range of values
+apply(numeric_ads, 2, range)
+```
+
+
+```{r}
+# Quantiles
+apply(numeric_ads, 2, quantile)
+```
+
+
+```{r}
+# Variance
+apply(numeric_ads, 2, var)
+```
+
+
+```{r}
+# Standard deviation
+apply(numeric_ads, 2, sd)
+```
+
+## Distributions
+
+```{r}
+# Distribution of time spent on the website
+
+hist(numeric_ads$Daily.Time.Spent.on.Site, xlab = 'Daily time spent on site', main = 'Distribution of time spent on website by users')
+```
+Distribution skewed to the right
+
+```{r}
+# Distribution of the age groups
+hist(numeric_ads$Age, xlab = 'Age', main = 'Distribution of users age')
+```
+Age is normally distributed
+
+```{r}
+hist(numeric_ads$Daily.Internet.Usage, xlab = 'Internet usage', main = 'Distribution of internet usage by users')
+```
+Not a normal distribution
+
+
+# Multivariate Analysis
+
+will check for
+1. Covarience
+2. Correlation
+3. relationship vetween variables using scatterplots
+
+## 1. Time spent and age
+
+```{r}
+# Covarience between time spent on the site and age
+
+cov((numeric_ads$Daily.Time.Spent.on.Site), (numeric_ads$Age))
+```
+Negative value, indicating a negative relationship between the two
+
+```{r}
+# Correlation of the two
+cor((numeric_ads$Daily.Time.Spent.on.Site), (numeric_ads$Age))
+```
+A negative correlation as well
+
+```{r}
+# scatterplot
+plot((numeric_ads$Daily.Time.Spent.on.Site), (numeric_ads$Age), xlab = 'Time spent', ylab = 'Age')
+```
+No relationship whatsoever between age of users and amount of time spent
+
+
+## 1. Daily internet usage and age
+```{r}
+# Covarience between daily net usage on the site and age
+
+cov((numeric_ads$Daily.Internet.Usage), (numeric_ads$Age))
+```
+
+Negative relationship.
+
+```{r}
+# Correlation between daily net usage on the site and age
+
+cor((numeric_ads$Daily.Internet.Usage), (numeric_ads$Age))
+
+```
+Low correlation
+
+```{r}
+# scatterplot
+plot((numeric_ads$Daily.Internet.Usage), (numeric_ads$Age), xlab = 'Time spent', ylab = 'Age')
+```
+No observarable relationship on the scatterplot as well
+
+# Bivariate analysis with the label
+
+```{r}
+
+clicks <- table(new_ads$Clicked.on.Ad)
+clicks
+barplot(
+  clicks
+)
+
+```
+There is a level amount of users who click the ads and those who dont.
+
+
+```{r}
+# Analysis of people who click on the ads
+ad_clickers <- new_ads[which(new_ads$Clicked.on.Ad == 1),]
+ad_clickers
+```
+
+
+```{r}
+# Most popular age group of people clicking on ads
+hist(ad_clickers$Age)
+```
+30 - 50 year olds click on the most ads
+
+```{r}
+#Most popular nations
+country_table <- table(ad_clickers$Country)
+
+```
+
+# Supervised Learning
+
+```{r}
+head(ad_clickers)
+```
+# Columns to be used in predicting include :
+
+1. Daily time spent on site
+2. Age of the user
+3. Daily internet usage
+4. Gender
+
+# The label is Clicked on ad column
+
+# Splitting
+```{r}
+new_ads2 <- new_ads[, c(1, 2, 4, 7, 10)]
+head(new_ads2)
+```
+# Normalization
+```{r}
+# Change y to factor
+new_ads2$Clicked.on.Ad <- as.factor(new_ads2$Clicked.on.Ad)
+class(new_ads2$Clicked.on.Ad)
+```
+
+Will normalize the x variables to range from 0 - 1
+
+```{r}
+
+normalize <- function(x){
+  return ((x-min(x)) / (max(x)-min(x)))
+}
+
+
+```
+
+# Splitting
+
+will split into 80 - 20 %
+```{r}
+library(caret)
+```
+
+```{r}
+trainer <- createDataPartition(y=new_ads2$Clicked.on.Ad, p=0.8, list=FALSE)
+
+training_set <- new_ads2[trainer,]
+testing_set <- new_ads2[-trainer,]
+```
+
+# Will use SVM in prediction
+
+```{r}
+# Loading library with the naive bayes module
+library(e1071)
+```
+
+```{r}
+# build model
+
+nb_model <- svm(Clicked.on.Ad ~ ., data = training_set, 
+                  trControl = trainControl(method = 'repeatedcv', number=10, repeats=3))
+```
+
+```{r}
+# Prediction
+predicts <- predict(nb_model, newdata = testing_set)
+```
+
+
+```{r}
+confusionMatrix(table(predicts, testing_set$Clicked.on.Ad))
+```
+
+the model has a 97% accuracy
+
+
+# Conclusion
+From the data analyis, ther is an equal number of people who click on ads and those who dont. As there is no relationship between the users ages and how much time they spend browsing, the ads placement should prioritise users between 30 and 50 years purely based on their frequency of clicking your ads. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
