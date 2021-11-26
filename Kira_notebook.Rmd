@@ -1,2 +1,394 @@
+# KIRA CUSTOMER ANALYSIS    
 
+# Problem Definition
+
+A Russian Retail brand that has operations around the world would like to understand their customers better. This would need their customers to be categorized into customer groups and the results to be channeled back to the company so as to improve the services offered to their customers.
+
+# Data Sourcing
+The data was provided by Moringa School as an Independent Project. 
+
+# Checking the data
+
+Will proceed to load the data and see whats up.
+
+```{r}
+# Load required libraries
+library(tidyverse)
+library(ggplot2)
+library(caret)
+library(rpart)
+```
+
+```{r}
+# Load the data
+
+df <- read.csv('~/Documents/DS-Projects/R/Kira Customer analysis/datasets/online_shoppers_intention.csv')
+
+# Print out first 6 records
+head(df)
+```
+```{r}
+# Size of the dataframe
+print(nrow(df))
+print(ncol(df))
+```
+
+The dataset has 12, 330 records of data with 18 features/columns.
+
+# Data Cleaning
+
+Here we will look for any null values, anomalies, outliers and duplicates in our data and deal with them accordingly
+
+## 1. Null Values
+```{r}
+# Checking for sum of null values per column
+colSums(is.na(df))
+
+```
+As the null values are very minimal, we will proceed to exclude them from our data
+
+```{r}
+# Dropping null values
+
+df <- na.omit(df)
+
+colSums(is.na(df))
+```
+
+Lets see how many rows of data we are left with
+```{r}
+# No of records left after dropping null values
+print(nrow(df))
+```
+Only 14 rows were dropped out of 12, 300
+
+## 2. Duplicates
+
+```{r}
+# Checking for duplicates
+df[duplicated(df),]
+```
+
+
+```{r}
+# will remove the 117 dups
+df <- df[!duplicated(df),]
+
+df[duplicated(df),]
+```
+
+No more duplicates left.
+
+## 3. Outliers
+
+Will use boxplots and drop outliers in the duration columns.
+
+### 1. Administrative duration
+
+```{r}
+# View outliers
+
+boxplot(df$Administrative_Duration)
+```
+Those outliers need to be dropped or they might mess up our machine learning process
+```{r}
+install.packages('outliers')
+```
+
+```{r}
+# Dropping outliers
+outliers <- boxplot.stats(df$Administrative_Duration)$out
+
+df2 <- df
+
+df2 <- df2[-which(df2$Administrative_Duration %in% outliers),]
+
+boxplot(df2$Administrative_Duration)
+```
+
+### 2. Informational duration
+```{r}
+boxplot(df2$ProductRelated_Duration)
+
+```
+```{r}
+outliers <- boxplot.stats(df2$ProductRelated_Duration)$out
+
+df2 <- df2[-which(df2$ProductRelated_Duration %in% outliers),]
+
+boxplot(df2$ProductRelated_Duration)
+```
+
+
+Due to the nature of the data, no more outliers wont be dropped this time as they might affect the representation of how customers interact with websites.
+
+# Exploratory Data Analysis
+
+To make univariate data analysis easier, will split the data into numerical and cartegorical datasets
+
+```{r}
+numerical_df <- df2[, c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)]
+
+categorical_df <- df2[, c(11, 12, 13, 14, 15, 16, 17, 18)]
+```
+
+## Univariate Data Analysis
+
+Will attempt to get dispersion and the averages of the features
+
+```{r}
+# Mean
+apply(numerical_df, 2, mean)
+```
+
+
+```{r}
+# median
+apply(numerical_df, 2, median)
+```
+
+```{r}
+# minimum values
+apply(numerical_df, 2, min)
+```
+
+
+```{r}
+# Maximum values
+apply(numerical_df, 2, max)
+```
+
+```{r}
+# variance
+apply(numerical_df, 2, var)
+```
+
+
+```{r}
+# standard deviation
+apply(numerical_df, 2, sd)
+```
+
+
+### Will plot bar charts to see the duration customers spend in certain websites and the distribution
+
+```{r}
+
+hist(df2$Administrative_Duration)
+```
+
+
+```{r}
+hist(df2$ProductRelated_Duration)
+```
+
+
+```{r}
+hist(df2$Informational_Duration)
+```
+
+
+```{r}
+hist(df2$ProductRelated)
+```
+
+Distribution of the data is mostly skewed to the left as most valies range at 0
+
+```{r}
+# Most popular OS
+count <- table(df2$OperatingSystems)
+barplot(count,
+        main='Most popular Operating Systems ',
+        xlab = 'Type of OS',
+        ylab = 'Count')
+
+```
+```{r}
+# Most popular browser
+count <- table(df2$Browser)
+barplot(count,
+        main='Most popular Operating Systems ',
+        xlab = 'Type of Browser',
+        ylab = 'Count')
+```
+
+
+```{r}
+# Most popular type of visitor
+count <- table(df2$VisitorType)
+
+barplot(count,
+        main='Most popular type of user ',
+        xlab = 'Count',
+        ylab = 'Visitor',
+        horiz = TRUE,
+        cex.names = 0.7)
+```
+Returning visitors are the most common type of user
+
+```{r}
+# Most visits are on weekends or not
+count <- table(df2$Weekend)
+barplot(count,
+        main='Most popular Operating Systems ',
+        xlab = 'Is it on a weekend?',
+        ylab = 'Count')
+```
+Most visitors use the websites on weekends as opposed to weekends
+
+## Bivariate Analysis
+
+Will start with some scatter plots, to find relationships between the data if any exists
+```{r}
+plot((df2$Informational_Duration), (df2$Administrative_Duration))
+```
+Alot of users do not spend any time on the informational websites
+
+```{r}
+plot((df2$BounceRates), (df2$ExitRates))
+```
+As we can see, as the number of exit rates increase, so does the amount of bounce rates
+
+## Correlation
+
+```{r}
+# will plot a heatmap of numerical data
+
+matrix <- as.matrix(numerical_df)
+heatmap(matrix)
+```
+uumm..
+
+
+# Implementation
+
+## Encoding and Scaling
+```{r}
+# Drop the label as its unsupervised
+df3 <- df2[, -18]
+
+# Encoding the categorical columns
+df3$VisitorType <- ifelse(df3$VisitorType == 'Returning_Visitor', 1, ifelse(df3$VisitorType == 'New_Visitor', 2, 0))
+df3$Weekend <- ifelse(df3$Weekend == 'FALSE', 0, 1)
+
+#encoding the months column
+#Change column to factor
+df3$Month <- factor(df3$Month)
+
+#Change factor to numeric
+
+df3$Month<- as.numeric(df3$Month)
+
+table(df3$Month)
+```
+
+
+
+
+
+```{r}
+#Normalizing the values
+
+normalize <- function(x){
+  return ((x-min(x)) / (max(x)-min(x)))
+}
+
+df4 <- normalize(df3)
+
+```
+
+# K Means Clustering
+
+```{r}
+k_clusters <- kmeans(df4, 2)
+
+```
+
+
+```{r}
+# Previewing size of clusters
+k_clusters$size
+```
+Two clusters of customers, one with 7600 customers and the other with 2500
+
+```{r}
+# Center for the clusters per the features
+k_clusters$centers
+```
+
+## Vizualizing our clusters
+```{r}
+plot(df4[c(7, 8)], col=k_clusters$cluster)
+```
+
+## KMeans with 4 clusters
+```{r}
+k_clusters_4 <- kmeans(df4, 4)
+
+plot(df4[c(7, 8)], col=k_clusters_4$cluster)
+```
+
+For 5 clusters, the sispersions are more clear, as users clustered in blue are around the 0 range and users clustered in black are in the higher ranges
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
 
