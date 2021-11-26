@@ -7,11 +7,12 @@ This is a repository that contains two sets of projects.
 
 2. A project done in R where unsupervised learning techniques such as K means clustering and Hierachical Clustering will be implemented to help a Russian company understand its customers better
 
+
 # Names of Contributors
 - Ryan Mburu
 
 # Date of completion
-19/10/2021
+26/10/2021
 
 # Motivation
 The project was a requirement by Moringa School, as a weekly Independent Project in the 13th week of core in Data Science.
