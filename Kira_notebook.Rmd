@@ -328,67 +328,49 @@ k_clusters_4 <- kmeans(df4, 4)
 plot(df4[c(7, 8)], col=k_clusters_4$cluster)
 ```
 
-For 5 clusters, the sispersions are more clear, as users clustered in blue are around the 0 range and users clustered in black are in the higher ranges
+For 5 clusters, the dispersions are more clear, as users clustered in blue are around the 0 range and users clustered in black are in the higher ranges
+
+# Hierachical Clustering
 ```{r}
+# In hierachical clustering, we will proceed to scale the values
+
+df5 <- scale(df3)
+
 ```
 
 
 ```{r}
+# specify the distance method
+distance <- dist(df5, method = 'euclidean')
 ```
 
 
 ```{r}
+# Perform clustering on the datatframe
+hier_clust <- hclust(distance, method = 'complete')
 ```
 
 
 ```{r}
+#Plotting the clusters
+plot(hier_clust, cex=0.6, hang = -1)
+```
+
+These are the clusters done by complete method. Lets compare with average method
+```{r}
+#Hclust of average method
+hier_clust2 <- hclust(distance, method = 'average')
 ```
 
 
 ```{r}
+#Plotting the clusters
+plot(hier_clust2, cex=0.6, hang = -1)
 ```
+# Conclusion
+
+Hierarchical clustering with the 'complete' method was the fastest and brought the best and most comprehensible results.
+Due to the size of the data, most of the clusters fell in the 0 range, and with more experience, will know what to do with that kind of data.
 
 
-```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
-```
 
